@@ -1,0 +1,34 @@
+{
+  "name": "quantia",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=24.11.0 <25"
+  },
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "setup:local": "node scripts/setup-local.mjs",
+    "dev": "concurrently -k -n API,WEB -c green,blue \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "db:generate": "npm run db:generate -w backend",
+    "db:migrate": "npm run db:migrate -w backend",
+    "db:seed": "npm run db:seed -w backend",
+    "test:backend": "npm run test -w backend",
+    "test:e2e": "playwright test",
+    "test:deployment": "node --test tests/deployment/configure.test.mjs",
+    "test:installer": "node scripts/check-installer.mjs",
+    "typecheck": "npm run typecheck --workspaces",
+    "build": "npm run build --workspaces",
+    "check": "npm run typecheck && npm run test:backend && npm run build"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0",
+    "concurrently": "^9.2.1",
+    "prettier": "^3.10.1",
+    "typescript": "^5.9.3"
+  }
+}

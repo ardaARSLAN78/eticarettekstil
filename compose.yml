@@ -1,0 +1,79 @@
+name: quantia
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-quantia}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-quantia_local_only}
+      POSTGRES_DB: ${POSTGRES_DB:-quantia}
+    ports: ["127.0.0.1:5433:5432"]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-test-db.sql:/docker-entrypoint-initdb.d/10-test.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quantia -d quantia"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    ports: ["127.0.0.1:6380:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+  backend:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file: backend/.env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-quantia}:${POSTGRES_PASSWORD:-quantia_local_only}@postgres:5432/${POSTGRES_DB:-quantia}
+      REDIS_URL: redis://redis:6379
+    ports: ["127.0.0.1:4100:4000"]
+    volumes:
+      - media_data:/app/backend/uploads
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    init: true
+    restart: unless-stopped
+  worker:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["node", "backend/dist/jobs/worker.js"]
+    healthcheck:
+      disable: true
+    env_file: backend/.env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-quantia}:${POSTGRES_PASSWORD:-quantia_local_only}@postgres:5432/${POSTGRES_DB:-quantia}
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      backend: { condition: service_healthy }
+    init: true
+    restart: unless-stopped
+  frontend:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      API_INTERNAL_URL: http://backend:4000
+      APP_ORIGIN: ${WEB_ORIGIN:-http://localhost:3000}
+    ports: ["127.0.0.1:3000:3000"]
+    depends_on:
+      backend: { condition: service_healthy }
+    init: true
+    restart: unless-stopped
+volumes:
+  postgres_data:
+  media_data:

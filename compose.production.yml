@@ -1,0 +1,38 @@
+# TLS sağlayan ana ters vekil yalnızca gateway'in yerel 8080 portuna bağlanır.
+services:
+  postgres:
+    ports: !reset []
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Üretim PostgreSQL şifresi gerekli}
+    volumes: !override
+      - postgres_data:/var/lib/postgresql/data
+  redis:
+    ports: !reset []
+  backend:
+    ports: !reset []
+    environment:
+      NODE_ENV: production
+      WEB_ORIGIN: ${WEB_ORIGIN:?HTTPS mağaza adresi gerekli}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:?HTTPS bildirim adresi gerekli}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Şifreleme anahtarı gerekli}
+      ENABLE_DEMO_PAYMENT: "false"
+      TRUST_PROXY: uniquelocal
+  worker:
+    environment:
+      NODE_ENV: production
+      WEB_ORIGIN: ${WEB_ORIGIN}
+      PUBLIC_API_URL: ${PUBLIC_API_URL}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      ENABLE_DEMO_PAYMENT: "false"
+  frontend:
+    ports: !reset []
+  gateway:
+    image: nginx:1.28-alpine
+    profiles: ["app"]
+    ports: ["127.0.0.1:8080:80"]
+    volumes:
+      - ./nginx/quantia.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      backend: { condition: service_healthy }
+      frontend: { condition: service_started }
+    restart: unless-stopped

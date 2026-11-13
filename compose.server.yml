@@ -1,0 +1,94 @@
+# Tek komutlu kurulumun bağımsız üretim yığını; geliştirme .env dosyalarını okumaz.
+name: ${QUANTIA_PROJECT_NAME:-quantia-server}
+x-api: &api
+  NODE_ENV: production
+  HOST: 0.0.0.0
+  PORT: 4000
+  DATABASE_URL: postgresql://quantia:${POSTGRES_PASSWORD:?}@postgres:5432/quantia
+  REDIS_URL: redis://redis:6379
+  WEB_ORIGIN: https://${QUANTIA_DOMAIN:?}
+  PUBLIC_API_URL: https://${QUANTIA_DOMAIN:?}
+  ENCRYPTION_KEY: ${ENCRYPTION_KEY:?}
+  ENABLE_DEMO_PAYMENT: "false"
+  TRUST_PROXY: uniquelocal
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: quantia
+      POSTGRES_DB: quantia
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U quantia -d quantia"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    command: [redis-server, --maxmemory, 128mb, --maxmemory-policy, allkeys-lru]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+  backend:
+    image: ${QUANTIA_IMAGE_PREFIX:-quantia-server}-backend:latest
+    environment:
+      <<: *api
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:?}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?}
+    volumes: [media_data:/app/backend/uploads]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    init: true
+    restart: unless-stopped
+  worker:
+    image: ${QUANTIA_IMAGE_PREFIX:-quantia-server}-backend:latest
+    environment: *api
+    command: [node, backend/dist/jobs/worker.js]
+    healthcheck: { disable: true }
+    depends_on:
+      backend: { condition: service_healthy }
+    init: true
+    restart: unless-stopped
+  frontend:
+    image: ${QUANTIA_IMAGE_PREFIX:-quantia-server}-frontend:latest
+    environment:
+      API_INTERNAL_URL: http://backend:4000
+      APP_ORIGIN: https://${QUANTIA_DOMAIN:?}
+    depends_on:
+      backend: { condition: service_healthy }
+    init: true
+    restart: unless-stopped
+  gateway:
+    image: nginx:1.28-alpine
+    volumes: [./nginx/quantia.conf:/etc/nginx/conf.d/default.conf:ro]
+    depends_on:
+      backend: { condition: service_healthy }
+      frontend: { condition: service_healthy }
+    restart: unless-stopped
+  edge:
+    image: caddy:2-alpine
+    environment:
+      QUANTIA_DOMAIN: ${QUANTIA_DOMAIN:?}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [gateway]
+    restart: unless-stopped
+volumes:
+  postgres_data:
+  media_data:
+  caddy_data:
+  caddy_config:
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${QUANTIA_SUBNET:?}

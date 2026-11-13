@@ -1,0 +1,12 @@
+node_modules
+backend/src/generated
+backend/prisma/migrations
+backend/prisma/schema.prisma
+frontend/.next
+**/dist
+package-lock.json
+tmp
+.deployment
+output
+test-results
+playwright-report

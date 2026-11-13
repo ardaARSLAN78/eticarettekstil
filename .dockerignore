@@ -1,0 +1,15 @@
+node_modules
+**/node_modules
+**/.next
+**/dist
+**/.env
+.env
+.deployment
+.git
+tmp
+output
+test-results
+playwright-report
+**/src/generated
+backend/uploads
+**/tmp

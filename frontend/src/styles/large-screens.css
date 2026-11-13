@@ -1,0 +1,101 @@
+/* %100 yakınlaştırmada geniş monitör: okunur metin, doğru kadraj, kontrollü satır uzunluğu. */
+.hero-photo {
+  object-position: center top;
+}
+
+.hero-content > p {
+  max-width: 440px;
+  font-size: 14px;
+}
+
+.brand-caption {
+  font-size: 8px;
+  letter-spacing: 0.2em;
+}
+
+.footer-custom-logo img {
+  filter: brightness(0) invert(1);
+}
+
+@media (min-width: 1600px) {
+  .page-container,
+  .header-inner {
+    max-width: 1760px;
+  }
+
+  .header-inner {
+    min-height: 104px;
+  }
+
+  .brand-name {
+    font-size: 43px;
+  }
+
+  .desktop-nav {
+    gap: 38px;
+  }
+
+  .desktop-nav a {
+    font-size: 12px;
+  }
+
+  .hero {
+    height: clamp(680px, 37vw, 790px);
+  }
+
+  .hero-content {
+    max-width: 1720px;
+    padding-top: 108px;
+  }
+
+  .hero h1 {
+    font-size: clamp(90px, 4.6vw, 118px);
+  }
+
+  .hero-content > p {
+    font-size: 15px;
+    max-width: 490px;
+  }
+
+  .hero .button {
+    padding: 17px 28px;
+    font-size: 14px;
+  }
+
+  .benefits {
+    padding: 30px 48px;
+  }
+
+  .section-heading h2 {
+    font-size: 49px;
+  }
+
+  .product-card-info h3 {
+    font-size: 27px;
+  }
+
+  .newsletter,
+  .footer-main {
+    padding-left: max(64px, calc((100vw - 1760px) / 2));
+    padding-right: max(64px, calc((100vw - 1760px) / 2));
+  }
+}
+
+@media (max-width: 650px) {
+  .hero-content > p {
+    max-width: 290px;
+    font-size: 13px;
+  }
+
+  .brand-caption {
+    font-size: 6px;
+  }
+
+  .hero-photo {
+    object-position: 84% top;
+  }
+
+  .product-card-info h3 {
+    font-size: 22px;
+  }
+}
